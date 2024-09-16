@@ -1,0 +1,20 @@
+{
+  "f843fc7d-5411-4d5c-a31b-5da263c815f3.mind": {
+    "timestamp": 1726529469772,
+    "size": 128026,
+    "mimetype": "application/octet-stream",
+    "date": "2024-09-16T23:31:09.772Z",
+    "originalName": "erd-example.mind",
+    "hash": "b683e9081c96c05bdc4db4328608d64cbdd8335a10fb020097bf0252ed8dc176",
+    "uniqueName": "f843fc7d-5411-4d5c-a31b-5da263c815f3.mind"
+  },
+  "fe236940-1a1a-4526-9d41-a2925786fb49.glb": {
+    "timestamp": 1726529509026,
+    "size": 8961340,
+    "mimetype": "model/gltf-binary",
+    "date": "2024-09-16T23:31:49.026Z",
+    "originalName": "WaterBottle.glb",
+    "hash": "074341e0c9b991244ea88fed77221754dfa33b53ee13523fa5f3c10a28a30160",
+    "uniqueName": "fe236940-1a1a-4526-9d41-a2925786fb49.glb"
+  }
+}

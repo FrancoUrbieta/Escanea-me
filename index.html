@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="https://glitch.com/favicon.ico" />
+    <link rel="stylesheet" href="style.css" />
+    
+    <title>Escanea-me</title>
+
+    <link rel="stylesheet" href="dropzone.min.css"/>
+    <script src="dropzone.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrious@latest/dist/qrious.min.js"></script>
+    <script src="/mindar-image.js"></script>
+
+    <script>
+      Dropzone.autoDiscover = false;
+
+      const compiler = new MINDAR.IMAGE.Compiler();
+
+      const download = (buffer) => {
+        var blob = new Blob([buffer]);
+        var aLink = window.document.createElement("a");
+
+        aLink.download = "targets.mind";
+        aLink.href = window.URL.createObjectURL(blob);
+        aLink.click();
+
+        window.URL.revokeObjectURL(aLink.href);
+      };
+
+      const loadImage = async (file) => {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = URL.createObjectURL(file);
+        });
+      };
+
+      const uploadToServer = async (file, fileCurrentName) => {
+        const formData = new FormData();
+        formData.append('file', file, fileCurrentName);
+        const response = await fetch('/upload', {
+          method: 'POST',
+          body: formData
+        });
+        const result = await response.json();
+        if (result.message === 'Archivo ya existe') {
+          console.log("Archivo ya existe");
+          return result.fileName;
+        }
+        return result.fileName;
+      };
+      
+      const compileFiles = async (files) => {
+        const images = [];
+        const file = files[0];
+        const newFileName = `${file.name.split('.').slice(0, -1).join('.')}.mind`;
+        
+        for (let i = 0; i < files.length; i++) {
+          images.push(await loadImage(files[i]));
+        }
+        let _start = new Date().getTime();
+        const dataList = await compiler.compileImageTargets(images, (progress) => {
+          document.getElementById("progress").innerHTML = "progress: " + progress.toFixed(2) + "%";
+        });
+        const exportedBuffer = await compiler.exportData();
+        const targetFile = await uploadToServer(new Blob([exportedBuffer], { type: 'application/octet-stream' }), newFileName);
+        console.log("exec time compile: ", new Date().getTime() - _start);
+        return targetFile;
+      };
+      
+      const createScanLink = (targetFile, model3DFile) => {
+        const urlPath = `/scan.html?target=${encodeURIComponent(targetFile)}&model=${encodeURIComponent(model3DFile)}`;
+        const absoluteUrl = `${window.location.origin}${urlPath}`;
+
+        const link = document.createElement('a');
+        link.href = absoluteUrl;
+        link.textContent = 'Access Scan Page';
+        link.style.display = 'block';
+        link.style.marginTop = '10px';
+
+        const container = document.getElementById('scanLink');
+        container.innerHTML = '';
+        container.appendChild(link);
+
+        const qr = new QRious({
+          element: document.createElement('canvas'),
+          value: absoluteUrl,
+          size: 200
+        });
+
+        const qrImage = document.createElement('img');
+        qrImage.src = qr.toDataURL();
+        qrImage.style.display = 'block';
+        qrImage.style.marginTop = '10px';
+
+        container.appendChild(qrImage);
+      };
+
+      document.addEventListener("DOMContentLoaded", function (event) {
+          const DropzoneTarget = new Dropzone("#dropzoneTarget", {
+            url: "#",
+            autoProcessQueue: false,
+            addRemoveLinks: true,
+            acceptedFiles: 'image/*, .mind'
+          });
+
+          const DropzoneModel3D = new Dropzone("#dropzoneModel3D", {
+            url: "#",
+            autoProcessQueue: false,
+            addRemoveLinks: true,
+            acceptedFiles: '.obj, .fbx, .glb, .gltf'
+          });
+
+          DropzoneTarget.on("addedfile", function (file) {});
+          DropzoneModel3D.on("addedfile", function (file) {});
+
+          document.getElementById("startButton").addEventListener("click", async function () {
+            const dropzoneTargetFile = DropzoneTarget.getAcceptedFiles();
+            const dropzoneModel3DFile = DropzoneModel3D.getAcceptedFiles();
+            if (dropzoneModel3DFile.length === 0 || dropzoneTargetFile.length === 0) {
+              alert("Por favor, cargue al menos un archivo de destino y un modelo 3D.");
+              return;
+            }
+            alert("Iniciando...");
+            try {
+              const target = dropzoneTargetFile[0];
+              const targetName = target.name;
+              const model3D = dropzoneModel3DFile[0];
+              const model3DName = model3D.name;
+
+              let targetFile;
+              const ext = targetName.split(".").pop().toLowerCase();
+              if (ext === "mind") {
+                targetFile = await uploadToServer(target, targetName);
+              } else {
+                targetFile = await compileFiles(dropzoneTargetFile);
+              }
+              const model3DFile = await uploadToServer(model3D, model3DName);
+              createScanLink(targetFile, model3DFile);
+            } catch (err) {
+              console.error("Error durante la carga de archivos:", err);
+            }
+          });
+      });
+    </script>
+  </head>
+  <body>
+    <div>
+      <h2>Uso:</h2>
+      <p class="container" id="colp">
+        Suelte las imágenes de destino (por ejemplo, .png) en la zona de
+        colocación.<br />
+        Haga clic en "Iniciar", podría tardar un poco (especialmente para
+        imágenes grandes).<br />
+        Cuando termine, se mostrarán algunas imágenes de depuración y podrá
+        visualizar los puntos característicos.<br />
+      </p>
+    </div>
+    
+    <div class="container">
+      <button id="startButton">Iniciar</button>
+      <span id="progress"></span>
+    </div>
+    
+    <div class="container">
+      <form id="dropzoneTarget" class="dropzone"></form>
+      <br><br>
+      <form id="dropzoneModel3D" class="dropzone"></form>
+    </div>
+    
+    <div id="scanLink"></div>
+
+    <noscript> Your browser does not support JavaScript! </noscript>
+  </body>
+</html>

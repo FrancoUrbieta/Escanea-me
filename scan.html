@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="https://glitch.com/favicon.ico" />
+  <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.1.4/dist/mindar-face.prod.js"></script>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const targetFileName = urlParams.get('target');
+      const modelFileName = urlParams.get('model');
+
+      if (targetFileName && modelFileName) {
+        const targetUrl = `/uploads/targets/${targetFileName}`;
+        const modelUrl = `/uploads/models3D/${modelFileName}`;
+
+        const rotation = "0 0 0";
+        const position = "0 0 0.1";
+        const scale = "1 1 1";
+        
+        document.querySelector('a-scene').setAttribute('mindar-image', `imageTargetSrc: ${targetUrl};`);
+
+        const model = document.querySelector('a-gltf-model');
+        model.setAttribute('src', modelUrl);
+        model.addEventListener('model-loaded', function () {
+          console.log('Modelo cargado exitosamente!');
+        });
+        model.addEventListener('model-error', function () {
+          console.error('Error al cargar el modelo desde:', modelUrl);
+        });
+
+        model.setAttribute('rotation', rotation);
+        model.setAttribute('position', position);
+        model.setAttribute('scale', scale);
+
+      } else {
+        console.error('No se proporcionaron nombres de archivo.');
+      }
+    });
+  </script>
+</head>
+<body>
+  <a-scene color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+    <a-entity mindar-image-target="targetIndex: 0">
+      <a-gltf-model 
+          rotation="0 0 0" position="0 0 0" scale="1 1 1"
+          animation="property: position; to: 0 0.1 0.1; dur: 1000; easing: easeInOutQuad; loop: true; dir: alternate"
+      ></a-gltf-model>
+    </a-entity>
+  </a-scene>
+</body>
+</html>
